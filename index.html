@@ -3,30 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Чеченский AI</title>
-  </head>
+  <title>Чеченский AI-сайт</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
 <body>
-  <header><button>Ненан мотт</button></header>
-  <main>
-    <h1>Ас муха гӀо дийр дара?</h1>
-    <div class="training-log" id="trainingLog">Готов к общению</div>
-    <div class="card"><div class="card-text">Сайт с AI-ассистентом. Задавайте вопросы, переводите, общайтесь на чеченском и русском.</div></div>
-    <div id="chat"></div>
-  </main>
-  <div id="inputArea">
-    <input id="userInput" type="text" placeholder="Напишите что-нибудь..." />
-    <div class="input-right">
-      <button class="icon-btn" onclick="startListening()" id="micButton">
-        <img id="micIcon" src="mic-icon.png" alt="Микрофон">
-      </button>
-      <button class="icon-btn" onclick="sendMessage()" id="searchButton">
-        <img id="searchIcon" src="search-mi.png" alt="Отправить">
-      </button>
+  <div class="container">
+    <h2>Ас муха гlо дийр дара?</h2>
+    <p>Готов к общению</p>
+
+    <div class="bubble system">
+      Сайт с AI-ассистентом. Задавайте вопросы, переводите, общайтесь на чеченском и русском.
     </div>
+
+    <div id="chat" class="chat-box"></div>
+
+    <form id="chat-form">
+      <input id="user-input" type="text" placeholder="Напишите сообщение..." autocomplete="off" required />
+      <button type="submit">Отправить</button>
+    </form>
   </div>
+
   <script>
-    const API = 'https://chechen-ai-server.onrender.com';
+    const API = 'https://chechen-ai-server.onrender.com/chat';
     const chat = document.getElementById("chat");
+
     function addBubble(text, role) {
       const div = document.createElement("div");
       div.className = "bubble " + role;
@@ -35,55 +35,38 @@
       chat.scrollTop = chat.scrollHeight;
     }
 
-    function sendMessage() {
-      const input = document.getElementById("userInput");
-      const text = input.value.trim();
-      if (!text) return;
-      addBubble(text, "user");
-      input.value = "";
-      fetch(API + "/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: text })
-      })
-      .then(res => res.json())
-      .then(data => addBubble(data.reply, "ai"))
-      .catch(() => addBubble("Ошибка подключения к AI", "ai"));
+    async function sendMessage(userInput) {
+      addBubble(userInput, "user");
+
+      try {
+        const res = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: userInput })
+        });
+
+        const data = await res.json();
+
+        if (data.reply) {
+          addBubble(data.reply, "ai");
+        } else {
+          addBubble("Ошибка получения ответа от AI", "ai");
+        }
+      } catch (error) {
+        addBubble("Ошибка подключения к AI", "ai");
+        console.error(error);
+      }
     }
 
-    function startListening() {
-      const micIcon = document.getElementById("micIcon");
-      micIcon.classList.add("red");
-      const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!Rec) {
-        alert("Браузер не поддерживает голосовой ввод");
-        micIcon.classList.remove("red");
-        return;
+    document.getElementById("chat-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const input = document.getElementById("user-input");
+      const message = input.value.trim();
+      if (message) {
+        sendMessage(message);
+        input.value = "";
       }
-      const rec = new Rec();
-      rec.lang = "ru-RU";
-      rec.interimResults = false;
-      rec.onresult = (e) => {
-        const text = e.results[0][0].transcript;
-        document.getElementById("userInput").value = text;
-        sendMessage();
-      };
-      rec.onerror = () => micIcon.classList.remove("red");
-      rec.onend = () => micIcon.classList.remove("red");
-      rec.start();
-    }
+    });
   </script>
-</body>
-</html>
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Untitled Page</title>
-<meta name="generator" content="WYSIWYG Web Builder 20 - https://www.wysiwygwebbuilder.com">
-<link href="Сайт_создан_на_искусственном_интеллекте.css" rel="stylesheet">
-<link href="index.css" rel="stylesheet">
-</head>
-<body>
 </body>
 </html>
