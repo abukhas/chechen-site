@@ -1,72 +1,133 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Чеченский AI-сайт</title>
-  <link rel="stylesheet" href="index.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chechen AI Ассистент</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f8f8f8;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin-top: 40px;
+    }
+    #chat {
+      width: 60%;
+      max-width: 700px;
+      margin: 20px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      min-height: 200px;
+      text-align: left;
+    }
+    .user { color: blue; margin-top: 10px; }
+    .ai { color: green; margin-top: 5px; }
+    .typing { border-right: 2px solid black; animation: blink 1s step-end infinite; }
+    @keyframes blink {
+      50% { border-color: transparent; }
+    }
+    #form {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    #userInput {
+      width: 60%;
+      padding: 10px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px;
+      margin-left: 5px;
+      font-size: 16px;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Ас муха гlо дийр дара?</h2>
-    <p>Готов к общению</p>
+  <h1>Chechen AI Ассистент</h1>
+  <div id="chat"></div>
 
-    <div class="bubble system">
-      Сайт с AI-ассистентом. Задавайте вопросы, переводите, общайтесь на чеченском и русском.
-    </div>
-
-    <div id="chat" class="chat-box"></div>
-
-    <form id="chat-form">
-      <input id="user-input" type="text" placeholder="Напишите сообщение..." autocomplete="off" required />
-      <button type="submit">Отправить</button>
-    </form>
+  <div id="form">
+    <input type="text" id="userInput" placeholder="Введите сообщение..." />
+    <button onclick="sendMessage()">Отправить</button>
+    <button onclick="startVoice()">🎤</button>
   </div>
 
   <script>
-    const API = 'https://chechen-ai-server.onrender.com/chat';
-    const chat = document.getElementById("chat");
+    const API = "https://chechen-ai-server.onrender.com/api";
 
-    function addBubble(text, role) {
-      const div = document.createElement("div");
-      div.className = "bubble " + role;
-      div.textContent = text;
-      chat.appendChild(div);
+    function sendMessage() {
+      const input = document.getElementById("userInput");
+      const message = input.value.trim();
+      if (!message) return;
+
+      appendMessage("user", message);
+      input.value = "";
+
+      fetch(API + "/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error || !data.result) {
+          showTypingEffect("ai", "Я ещё учусь. Попробуй другой вопрос.");
+        } else {
+          showTypingEffect("ai", data.result);
+        }
+      })
+      .catch(() => {
+        showTypingEffect("ai", "Произошла ошибка при обращении к AI. Попробуй ещё раз позже.");
+      });
+    }
+
+    function appendMessage(sender, text) {
+      const chat = document.getElementById("chat");
+      const msg = document.createElement("div");
+      msg.className = sender;
+      msg.textContent = (sender === "user" ? "Вы: " : "AI: ") + text;
+      chat.appendChild(msg);
       chat.scrollTop = chat.scrollHeight;
     }
 
-    async function sendMessage(userInput) {
-      addBubble(userInput, "user");
-
-      try {
-        const res = await fetch(API, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: userInput })
-        });
-
-        const data = await res.json();
-
-        if (data.reply) {
-          addBubble(data.reply, "ai");
-        } else {
-          addBubble("Ошибка получения ответа от AI", "ai");
+    function showTypingEffect(sender, text) {
+      const chat = document.getElementById("chat");
+      const msg = document.createElement("div");
+      msg.className = sender;
+      msg.textContent = (sender === "ai" ? "AI: " : "") + "";
+      chat.appendChild(msg);
+      let i = 0;
+      function typeChar() {
+        if (i < text.length) {
+          msg.textContent += text[i++];
+          setTimeout(typeChar, 30);
         }
-      } catch (error) {
-        addBubble("Ошибка подключения к AI", "ai");
-        console.error(error);
       }
+      typeChar();
+      chat.scrollTop = chat.scrollHeight;
     }
 
-    document.getElementById("chat-form").addEventListener("submit", function (e) {
-      e.preventDefault();
-      const input = document.getElementById("user-input");
-      const message = input.value.trim();
-      if (message) {
-        sendMessage(message);
-        input.value = "";
-      }
-    });
+    function startVoice() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = "ru-RU";
+      recognition.start();
+
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById("userInput").value = transcript;
+      };
+      recognition.onerror = function() {
+        alert("Ошибка при распознавании речи");
+      };
+    }
   </script>
 </body>
 </html>
